@@ -2,6 +2,8 @@ const fs = require("fs");
 const express = require("express");
 
 const events = [];
+const errors = [];
+let isClosing = false;
 
 // Initialize Express application
 const app = express();
@@ -37,6 +39,11 @@ app.post("/webhook", (req, res) => {
   console.log(req.body);
 });
 
+app.use((err, req, _, __) => {
+  console.error(err.stack);
+  errors.push({ body: req.body, err: err.stack });
+});
+
 const server = app.listen(3000, () => {
   console.log("App listening on port 3000");
   console.log(
@@ -45,9 +52,15 @@ const server = app.listen(3000, () => {
 });
 
 const handleShutdown = () => {
+  // Avoid multiple `SIGINT` signals
+  if (isClosing) return;
+  isClosing = true;
+
   const json = {
     event_count: events.length,
     events: events,
+    error_count: errors.length,
+    errors: errors,
   };
 
   fs.writeFileSync("output.json", JSON.stringify(json, null, 2));
@@ -57,6 +70,14 @@ const handleShutdown = () => {
     console.log("Server closed");
     process.exit(0);
   });
+
+  // Set a timeout to forcefully shut down after a delay
+  setTimeout(() => {
+    console.error(
+      "Could not close connections in time, forcefully shutting down"
+    );
+    process.exit(1);
+  }, 10000);
 };
 
 process.on("SIGINT", handleShutdown);
