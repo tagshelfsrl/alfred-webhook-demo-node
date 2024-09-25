@@ -18,6 +18,6 @@
   },
   "homepage": "https://github.com/tagshelfsrl/alfred-webhook-demo-node#readme",
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.21.0"
   }
 }
